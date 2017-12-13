@@ -1,0 +1,26 @@
+{
+  "name": "react-native-gps-location",
+  "version": "1.0.0",
+  "description":
+    "Use native location and background update for more accurate location and low battery usage",
+  "contributors": [
+    {
+      "name": "mmazouz",
+      "email": "mmazouz@student.42.fr"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/malikoum94/react-native-gps-location.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["react-native", "location", "native", "ios", "android"],
+  "author": "mmazouz",
+  "license": "MIT",
+  "peerDependencies": {
+    "react-native": "^0.41.2"
+  }
+}
