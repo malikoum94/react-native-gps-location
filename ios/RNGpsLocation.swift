@@ -40,16 +40,21 @@ class RNGpsLocation: RCTEventEmitter, CLLocationManagerDelegate {
     @objc func askAuthorization() -> Void {
         self.GPS.requestAlwaysAuthorization()
     }
-    
+
     @objc func startMonitor() -> Void {
         if CLLocationManager.authorizationStatus() == .authorizedAlways {
             if CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) {
                 // Register the region.
                 self.region?.notifyOnEntry = true
                 self.region?.notifyOnExit = true
-                
+
                 self.GPS.startMonitoring(for: self.region!)
+                print("start monitoring")
+            } else {
+                print("can't monitoring")
             }
+        } else {
+            print("no authorization")
         }
     }
     //    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -63,18 +68,35 @@ class RNGpsLocation: RCTEventEmitter, CLLocationManagerDelegate {
         }
     }
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        print("location")
         print(locations)
     }
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         if let region = region as? CLCircularRegion {
             let identifier = region.identifier
             print("enter")
+            print(region)
+        } else {
+            print("bad region")
         }
     }
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
         if let region = region as? CLCircularRegion {
             let identifier = region.identifier
             print("exit")
+            print(region)
+        } else {
+            print("bad region")
         }
     }
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("fail get")
+        print(error)
+    }
+    func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
+        print("monitoring error")
+        print(region!)
+        print(error)
+    }
+    locationm
 }
