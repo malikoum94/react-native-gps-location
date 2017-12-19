@@ -13,86 +13,185 @@ RCT_EXPORT_MODULE()
     return YES;
 }
 
+- (NSArray<NSString *> *)supportedEvents
+{
+    return @[@"location", @"error", @"enter", @"exit", @"visit"];
+}
+RCT_EXPORT_METHOD(askAlwaysAuthorization)
+{
+    [self.GPS requestAlwaysAuthorization];
+}
+RCT_EXPORT_METHOD(askInUseAuthorization)
+{
+    [self.GPS requestWhenInUseAuthorization];
+}
+RCT_REMAP_METHOD(getAuthorization, getAuthorizationWithResolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+    CLAuthorizationStatus status = [CLLocationManager authorizationStatus];
+    switch (status) {
+        case kCLAuthorizationStatusDenied:
+            resolve(@"denied");
+            break;
+        case kCLAuthorizationStatusRestricted:
+            resolve(@"restricted");
+            break;
+        case kCLAuthorizationStatusAuthorizedAlways:
+            resolve(@"always");
+            break;
+        case kCLAuthorizationStatusAuthorizedWhenInUse:
+            resolve(@"inUse");
+            break;
+        default:
+            resolve(@"undefined");
+            break;
+    }
+}
+RCT_EXPORT_METHOD(getLocation)
+{
+    [self.GPS requestLocation];
+}
+RCT_EXPORT_METHOD(startMonitor:(NSNumber*)latitude longitude:(NSNumber*)longitude name:(NSString*)name)
+{
+    if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusAuthorizedAlways) {
+        if ([CLLocationManager isMonitoringAvailableForClass: CLCircularRegion.self]) {
+            double longitudeTmp = [RCTConvert double: longitude];
+            double latitudeTmp = [RCTConvert double: latitude];
+            self.latitude = latitudeTmp;
+            self.longitude = longitudeTmp;
+            self.home = CLLocationCoordinate2DMake(self.latitude, self.longitude);
+            self.region = [[CLCircularRegion alloc] initWithCenter:self.home radius:self.distance identifier:name];
+            self.region.notifyOnExit = true;
+            self.region.notifyOnEntry = true;
+            [self.GPS startMonitoringForRegion:self.region];
+        } else {
+            [self sendEventWithName:@"error" body:@{@"error": @"can't monitoring"}];
+        }
+    } else {
+        [self sendEventWithName:@"error" body:@{@"error": @"no authorization"}];
+    }
+}
+RCT_EXPORT_METHOD(stopMonitor)
+{
+    if (self.region) {
+        [self.GPS stopMonitoringForRegion:self.region];
+    } else {
+        [self sendEventWithName:@"error" body:@{@"error": @"no region"}];
+    }
+}
+RCT_EXPORT_METHOD(allowBackgroundLocation:(NSNumber*)distance timeout:(NSNumber*)timeout)
+{
+    double distanceTmp = [RCTConvert double: distance];
+    double timeoutTmp = [RCTConvert double: timeout];
+    self.distance = distanceTmp;
+    self.timeout = timeoutTmp;
+    self.GPS.distanceFilter = self.distance;
+    self.GPS.allowsBackgroundLocationUpdates = true;
+    [self.GPS allowDeferredLocationUpdatesUntilTraveled:self.distance timeout:self.timeout];
+    
+}
+RCT_EXPORT_METHOD(disallowBackgroundLocation)
+{
+    self.GPS.allowsBackgroundLocationUpdates = false;
+    [self.GPS disallowDeferredLocationUpdates];
+}
+RCT_EXPORT_METHOD(updateLocation)
+{
+    if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusAuthorizedAlways) {
+        [self.GPS startUpdatingLocation];
+    } else {
+        [self sendEventWithName:@"error" body:@{@"error": @"can't update"}];
+    }
+}
+RCT_EXPORT_METHOD(stopUpdateLocation)
+{
+    [self.GPS stopUpdatingLocation];
+}
+RCT_EXPORT_METHOD(startVisit)
+{
+    [self.GPS startMonitoringVisits];
+}
+RCT_EXPORT_METHOD(stopVisit)
+{
+    [self.GPS stopMonitoringVisits];
+}
+
 - (id)init
 {
     self = [super init];
     if (self) {
         self.GPS = [[CLLocationManager alloc] init];
         self.GPS.delegate = self;
-        self.distance = 100;
-        self.timeout = 100;
-        self.accuracy = kCLLocationAccuracyHundredMeters;
-        self.longitude = 48.8963207;
-        self.latitude = 2.3186806;
-        self.home = CLLocationCoordinate2DMake(self.longitude, self.latitude);
-        self.region = [[CLCircularRegion alloc] initWithCenter:self.home radius:self.distance identifier:@"42"];
+        self.accuracy = kCLLocationAccuracyNearestTenMeters;
         self.GPS.activityType = CLActivityTypeOther;
-        self.GPS.allowsBackgroundLocationUpdates = true;
-        [self.GPS allowDeferredLocationUpdatesUntilTraveled:self.distance timeout:self.timeout];
-        self.GPS.distanceFilter = self.distance;
         self.GPS.desiredAccuracy = self.accuracy;
-        NSLog(@"%@", self.region);
     }
     return self;
 }
-
-- (NSArray<NSString *> *)supportedEvents
+- (void)locationManager:(CLLocationManager *)manager didVisit:(CLVisit *)visit
 {
-    return @[@"Location", @"error", @"enter", @"exit"];
+    NSDictionary *visitEvent = @{
+                                    @"latitude": @(visit.coordinate.latitude),
+                                    @"longitude": @(visit.coordinate.longitude),
+                                    @"accuracy": @(visit.horizontalAccuracy),
+                                    @"arrival": @(lroundf([visit.arrivalDate timeIntervalSince1970] * 1000)), // in ms
+                                    @"departure": @(lroundf([visit.departureDate timeIntervalSince1970] * 1000)) // in ms
+                                    };
+    [self sendEventWithName:@"visit" body:@{@"visit": visitEvent}];
 }
-RCT_EXPORT_METHOD(askAuthorization)
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
 {
-    [self.GPS requestAlwaysAuthorization];
+    CLLocation *location = [locations lastObject];
+    NSDictionary *locationEvent = @{
+                                    @"latitude": @(location.coordinate.latitude),
+                                    @"longitude": @(location.coordinate.longitude),
+                                    @"altitude": @(location.altitude),
+                                    @"accuracy": @(location.horizontalAccuracy),
+                                    @"altitudeAccuracy": @(location.verticalAccuracy),
+                                    @"course": @(location.course),
+                                    @"speed": @(location.speed),
+                                    @"timestamp": @(lroundf([location.timestamp timeIntervalSince1970] * 1000)) // in ms
+                                    };
+    [self sendEventWithName:@"location" body:@{@"location": locationEvent}];
 }
-RCT_EXPORT_METHOD(getLocation)
+- (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error
 {
-    [self.GPS requestLocation];
+    NSDictionary *errorEvent = @{
+                                    @"code": @(error.code),
+                                    @"domain": error.domain,
+                                    @"userInfo": error.userInfo,
+                                    @"localizedDescription": error.localizedDescription,
+                                    @"localizedFailureReason": error.localizedFailureReason
+                                    };
+    [self sendEventWithName:@"error" body:@{@"error": errorEvent}];
 }
-RCT_EXPORT_METHOD(startMonitor)
+- (void)locationManager:(CLLocationManager *)manager didEnterRegion:(CLRegion *)region
 {
-    if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusAuthorizedAlways) {
-        if ([CLLocationManager isMonitoringAvailableForClass: CLCircularRegion.self]) {
-            self.region.notifyOnExit = true;
-            self.region.notifyOnEntry = true;
-            [self.GPS startMonitoringForRegion:self.region];
-            NSLog(@"start monitoring");
-        } else {
-            NSLog(@"can't monitoring");
-        }
-    } else {
-        NSLog(@"no authorization");
-    }
-}
-- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations {
-    NSLog(@"location");
-    NSLog(@"%@", locations);
-}
-- (void)locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error {
-    NSLog(@"fail get");
-    NSLog(@"%@", error);
-}
-- (void)locationManager:(CLLocationManager *)manager didEnterRegion:(CLRegion *)region {
     if (region != nil) {
-        NSString * indentifier = region.identifier;
-        NSLog(@"enter");
-        NSLog(@"%@", region);
+        NSString * identifier = region.identifier;
+        [self sendEventWithName:@"enter" body:@{@"region": region, @"identifier": identifier}];
     } else {
-        NSLog(@"bad region");
+        [self sendEventWithName:@"error" body:@{@"error": @"bad region"}];
     }
 }
-- (void)locationManager:(CLLocationManager *)manager didExitRegion:(CLRegion *)region {
+- (void)locationManager:(CLLocationManager *)manager didExitRegion:(CLRegion *)region
+{
     if (region != nil) {
-        NSString * indentifier = region.identifier;
-        NSLog(@"exit");
-        NSLog(@"%@", region);
+        NSString * identifier = region.identifier;
+        [self sendEventWithName:@"exit" body:@{@"region": region, @"identifier": identifier}];
     } else {
-        NSLog(@"bad region");
+        [self sendEventWithName:@"error" body:@{@"error": @"bad region"}];
     }
 }
-- (void)locationManager:(CLLocationManager *)manager monitoringDidFailForRegion:(CLRegion *)region withError:(NSError *)error {
-    NSLog(@"monitoring error");
-    NSLog(@"%@", region);
-    NSLog(@"%@", error);
+- (void)locationManager:(CLLocationManager *)manager monitoringDidFailForRegion:(CLRegion *)region withError:(NSError *)error
+{
+    NSDictionary *errorEvent = @{
+                                 @"code": @(error.code),
+                                 @"domain": error.domain,
+                                 @"userInfo": error.userInfo,
+                                 @"localizedDescription": error.localizedDescription,
+                                 @"localizedFailureReason": error.localizedFailureReason
+                                 };
+    [self sendEventWithName:@"error" body:@{@"error": errorEvent, @"region": region}];
 }
 
 @end
