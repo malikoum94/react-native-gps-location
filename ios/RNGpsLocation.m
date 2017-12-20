@@ -84,7 +84,7 @@ RCT_EXPORT_METHOD(allowBackgroundLocation:(NSNumber*)distance timeout:(NSNumber*
     double timeoutTmp = [RCTConvert double: timeout];
     self.distance = distanceTmp;
     self.timeout = timeoutTmp;
-    self.GPS.distanceFilter = self.distance;
+    self.GPS.distanceFilter = kCLDistanceFilterNone;
     self.GPS.allowsBackgroundLocationUpdates = true;
     [self.GPS allowDeferredLocationUpdatesUntilTraveled:self.distance timeout:self.timeout];
     
@@ -121,7 +121,7 @@ RCT_EXPORT_METHOD(stopVisit)
     if (self) {
         self.GPS = [[CLLocationManager alloc] init];
         self.GPS.delegate = self;
-        self.accuracy = kCLLocationAccuracyNearestTenMeters;
+        self.accuracy = kCLLocationAccuracyBest;
         self.GPS.activityType = CLActivityTypeOther;
         self.GPS.desiredAccuracy = self.accuracy;
     }
@@ -137,6 +137,17 @@ RCT_EXPORT_METHOD(stopVisit)
                                     @"departure": @(lroundf([visit.departureDate timeIntervalSince1970] * 1000)) // in ms
                                     };
     [self sendEventWithName:@"visit" body:@{@"visit": visitEvent}];
+}
+- (void)locationManager:(CLLocationManager *)manager didFinishDeferredUpdatesWithError:(NSError *)error
+{
+    NSDictionary *errorEvent = @{
+                                 @"code": @(error.code),
+                                 @"domain": error.domain,
+                                 @"userInfo": error.userInfo,
+                                 @"localizedDescription": error.localizedDescription,
+                                 @"localizedFailureReason": error.localizedFailureReason
+                                 };
+    [self sendEventWithName:@"error" body:@{@"error": errorEvent}];
 }
 - (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray<CLLocation *> *)locations
 {
