@@ -50,7 +50,7 @@ RCT_EXPORT_METHOD(getLocation)
 {
     [self.GPS requestLocation];
 }
-RCT_EXPORT_METHOD(startMonitor:(NSNumber*)latitude longitude:(NSNumber*)longitude name:(NSString*)name)
+RCT_EXPORT_METHOD(startMonitor:(nonnull NSNumber*)latitude longitude:(nonnull NSNumber*)longitude name:(NSString*)name)
 {
     if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusAuthorizedAlways) {
         if ([CLLocationManager isMonitoringAvailableForClass: CLCircularRegion.self]) {
@@ -78,7 +78,7 @@ RCT_EXPORT_METHOD(stopMonitor)
         [self sendEventWithName:@"error" body:@{@"error": @"no region"}];
     }
 }
-RCT_EXPORT_METHOD(allowBackgroundLocation:(NSNumber*)distance timeout:(NSNumber*)timeout)
+RCT_EXPORT_METHOD(allowBackgroundLocation:(nonnull NSNumber*)distance timeout:(nonnull NSNumber*)timeout)
 {
     double distanceTmp = [RCTConvert double: distance];
     double timeoutTmp = [RCTConvert double: timeout];
@@ -143,9 +143,7 @@ RCT_EXPORT_METHOD(stopVisit)
     NSDictionary *errorEvent = @{
                                  @"code": @(error.code),
                                  @"domain": error.domain,
-                                 @"userInfo": error.userInfo,
-                                 @"localizedDescription": error.localizedDescription,
-                                 @"localizedFailureReason": error.localizedFailureReason
+                                 @"localizedDescription": error.localizedDescription
                                  };
     [self sendEventWithName:@"error" body:@{@"error": errorEvent}];
 }
@@ -169,9 +167,7 @@ RCT_EXPORT_METHOD(stopVisit)
     NSDictionary *errorEvent = @{
                                     @"code": @(error.code),
                                     @"domain": error.domain,
-                                    @"userInfo": error.userInfo,
-                                    @"localizedDescription": error.localizedDescription,
-                                    @"localizedFailureReason": error.localizedFailureReason
+                                    @"localizedDescription": error.localizedDescription
                                     };
     [self sendEventWithName:@"error" body:@{@"error": errorEvent}];
 }
@@ -198,9 +194,7 @@ RCT_EXPORT_METHOD(stopVisit)
     NSDictionary *errorEvent = @{
                                  @"code": @(error.code),
                                  @"domain": error.domain,
-                                 @"userInfo": error.userInfo,
-                                 @"localizedDescription": error.localizedDescription,
-                                 @"localizedFailureReason": error.localizedFailureReason
+                                 @"localizedDescription": error.localizedDescription
                                  };
     [self sendEventWithName:@"error" body:@{@"error": errorEvent, @"region": region}];
 }
