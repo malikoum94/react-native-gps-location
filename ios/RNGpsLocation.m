@@ -2,7 +2,7 @@
 #import "RNGpsLocation.h"
 @interface RNGpsLocation () <CLLocationManagerDelegate>
 @end
-@implementation RNGpsLocation 
+@implementation RNGpsLocation
 RCT_EXPORT_MODULE()
 - (dispatch_queue_t)methodQueue
 {
@@ -78,20 +78,49 @@ RCT_EXPORT_METHOD(stopMonitor)
         [self sendEventWithName:@"error" body:@{@"error": @"no region"}];
     }
 }
-RCT_EXPORT_METHOD(allowBackgroundLocation:(nonnull NSNumber*)distance timeout:(nonnull NSNumber*)timeout)
+RCT_EXPORT_METHOD(accuracySet:(nonnull NSNumber *)Accuracy)
 {
-    double distanceTmp = [RCTConvert double: distance];
-    double timeoutTmp = [RCTConvert double: timeout];
-    self.distance = distanceTmp;
-    self.timeout = timeoutTmp;
-    self.GPS.distanceFilter = kCLDistanceFilterNone;
+    int accuracy2 = [RCTConvert int:Accuracy];
+    switch (accuracy2) {
+        case 1:
+            self.accuracy = kCLLocationAccuracyBest;
+            break;
+        case 2:
+            self.accuracy = kCLLocationAccuracyBestForNavigation;
+            break;
+        case 3:
+            self.accuracy = kCLLocationAccuracyNearestTenMeters;
+            break;
+        case 4:
+            self.accuracy = kCLLocationAccuracyHundredMeters;
+            break;
+        case 5:
+            self.accuracy = kCLLocationAccuracyKilometer;
+            break;
+        default:
+            self.accuracy = kCLLocationAccuracyThreeKilometers;
+            break;
+    }
+    self.GPS.desiredAccuracy = self.accuracy;
+}
+RCT_EXPORT_METHOD(allowBackgroundLocation)
+{
     self.GPS.allowsBackgroundLocationUpdates = true;
-    [self.GPS allowDeferredLocationUpdatesUntilTraveled:self.distance timeout:self.timeout];
-    
 }
 RCT_EXPORT_METHOD(disallowBackgroundLocation)
 {
     self.GPS.allowsBackgroundLocationUpdates = false;
+}
+RCT_EXPORT_METHOD(allowDeferredLocation:(nonnull NSNumber*)distance timeout:(nonnull NSNumber*)timeout)
+{
+    self.distance = [RCTConvert double:distance];
+    self.timeout = [RCTConvert double:timeout];
+    self.GPS.distanceFilter = kCLDistanceFilterNone;
+    [self.GPS allowDeferredLocationUpdatesUntilTraveled:self.distance timeout:self.timeout];
+
+}
+RCT_EXPORT_METHOD(disallowDeferredLocation)
+{
     [self.GPS disallowDeferredLocationUpdates];
 }
 RCT_EXPORT_METHOD(updateLocation)
@@ -200,4 +229,4 @@ RCT_EXPORT_METHOD(stopVisit)
 }
 
 @end
-  
+

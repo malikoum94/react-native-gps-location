@@ -16,10 +16,14 @@ class GpsLocation {
     this.startMonitor = (latitude, longitude, name) =>
       RNGpsLocation.startMonitor(latitude, longitude, name)
     this.stopMonitor = () => RNGpsLocation.stopMonitor()
-    this.allowBackgroundLocation = (distance, timeout) =>
-      RNGpsLocation.allowBackgroundLocation(distance, timeout)
+    this.setAccuracy = accuracy => RNGpsLocation.accuracySet(accuracy)
+    this.allowBackgroundLocation = () => RNGpsLocation.allowBackgroundLocation()
     this.disallowBackgroundLocation = () =>
       RNGpsLocation.disallowBackgroundLocation()
+    this.allowDeferredLocation = (distance, timeout) =>
+      RNGpsLocation.allowDeferredLocation(distance, timeout)
+    this.disallowDeferredLocation = () =>
+      RNGpsLocation.disallowDeferredLocation()
     this.updateLocation = () => RNGpsLocation.updateLocation()
     this.stopUpdateLocation = () => RNGpsLocation.stopUpdateLocation()
     this.startVisit = () => RNGpsLocation.startVisit()
