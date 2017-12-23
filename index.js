@@ -17,6 +17,7 @@ class GpsLocation {
       RNGpsLocation.startMonitor(latitude, longitude, name)
     this.stopMonitor = () => RNGpsLocation.stopMonitor()
     this.setAccuracy = accuracy => RNGpsLocation.accuracySet(accuracy)
+    this.setDistance = distance => RNGpsLocation.distanceSet(distance)
     this.allowBackgroundLocation = () => RNGpsLocation.allowBackgroundLocation()
     this.disallowBackgroundLocation = () =>
       RNGpsLocation.disallowBackgroundLocation()

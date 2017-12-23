@@ -103,6 +103,12 @@ RCT_EXPORT_METHOD(accuracySet:(nonnull NSNumber *)Accuracy)
     }
     self.GPS.desiredAccuracy = self.accuracy;
 }
+RCT_EXPORT_METHOD(distanceSet:(nonnull NSNumber *)Distance)
+{
+    self.distance = [RCTConvert int:Distance];
+    self.GPS.distanceFilter = self.distance;
+    
+}
 RCT_EXPORT_METHOD(allowBackgroundLocation)
 {
     self.GPS.allowsBackgroundLocationUpdates = true;
